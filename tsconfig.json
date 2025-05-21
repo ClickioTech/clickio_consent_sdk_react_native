@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "target": "ES6",
+    "module": "CommonJS",
+    "declaration": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "jsx": "react",
+    "allowJs": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["index.js", "android", "ios"]
+}

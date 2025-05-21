@@ -1,0 +1,15 @@
+com.clickio.clickioapp
+color colorPrimary
+color colorPrimaryDark
+color iconBackground
+color splashscreen_background
+drawable ic_launcher_background
+drawable rn_edit_text_material
+drawable splashscreen_logo
+string app_name
+string expo_splash_screen_resize_mode
+string expo_splash_screen_status_bar_translucent
+string expo_system_ui_user_interface_style
+style AppTheme
+style ResetEditText
+style Theme_App_SplashScreen
