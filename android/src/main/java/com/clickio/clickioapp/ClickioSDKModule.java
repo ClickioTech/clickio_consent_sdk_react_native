@@ -1,6 +1,8 @@
 package com.clickio.clickioapp;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import com.clickio.clickioconsentsdk.ClickioConsentSDK;
@@ -23,6 +25,7 @@ import java.util.Map;
 
 public class ClickioSDKModule extends ReactContextBaseJavaModule {
     private static final String TAG = "ClickioSDK";
+    private static boolean isInitialized = false; 
 
     public ClickioSDKModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -33,28 +36,56 @@ public class ClickioSDKModule extends ReactContextBaseJavaModule {
         return "ClickioSDKModule";
     }
 
-    @ReactMethod
+  @ReactMethod
     public void initializeSDK(String siteId, String language) {
+        if (isInitialized) {
+            Log.d(TAG, "SDK already initialized. Skipping re-initialization.");
+            return;
+        }
+
         ClickioConsentSDK.Companion.getInstance().setLogsMode(LogsMode.VERBOSE);
         String configLanguage = (language != null && !language.isEmpty()) ? language : "en";
         Config config = new ClickioConsentSDK.Config(siteId, configLanguage);
         ClickioConsentSDK.Companion.getInstance().initialize(getReactApplicationContext(), config);
+        isInitialized = true;
         Log.d(TAG, "SDK initialized with language: " + configLanguage);
     }
 
-    @ReactMethod
-    public void onReady(Callback callback) {
-        ClickioConsentSDK.Companion.getInstance().onReady(() -> {
-            callback.invoke("SDK is ready!");
-            Log.d(TAG, "SDK initialized onReady");
-            Context context = getCurrentActivity();
-            if (context != null) {
-                ClickioConsentSDK.Companion.getInstance().openDialog(context, ClickioConsentSDK.DialogMode.RESURFACE);
-                logToJS("Consent dialog opened.");
+@ReactMethod
+public void onReady(String dialogModeStr, Callback callback) {
+    Log.d(TAG, "onReady called from JS with mode: " + dialogModeStr);
+
+    ClickioConsentSDK sdk = ClickioConsentSDK.Companion.getInstance();
+    Log.d(TAG, "Got SDK instance: " + sdk);
+
+    sdk.onReady(() -> {
+        Log.d(TAG, "onReady callback triggered");
+
+        callback.invoke("SDK is ready!");
+        Log.d(TAG, "Callback invoked");
+
+        Context context = getCurrentActivity();
+        if (context != null) {
+            ClickioConsentSDK.DialogMode dialogMode = ClickioConsentSDK.DialogMode.DEFAULT;
+
+            try {
+                dialogMode = ClickioConsentSDK.DialogMode.valueOf(dialogModeStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                Log.w(TAG, "Invalid dialog mode string passed: " + dialogModeStr);
             }
-            return null;
-        });
-    }
+
+            sdk.openDialog(context, dialogMode);
+            logToJS("Consent dialog opened with mode: " + dialogMode.name());
+        } else {
+            Log.w(TAG, "getCurrentActivity() returned null");
+        }
+
+        return null;
+    });
+
+    Log.d(TAG, "sdk.onReady() registered the lambda");
+}
+
 
     @ReactMethod
     public void startLoggingLogsFromAndroid() {
@@ -229,6 +260,21 @@ public void getGoogleConsentFlags(Promise promise) {
             });
         } catch (Exception e) {
             promise.reject("ConsentSetupError", e);
+        }
+    }
+       @ReactMethod
+    public void resetSDK(Promise promise) {
+        try {
+            Context context = getReactApplicationContext();
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.clear();
+            editor.apply();
+
+            isInitialized = false; // Allow re-initialization again
+            promise.resolve("SDK preferences cleared.");
+        } catch (Exception e) {
+            promise.reject("RESET_SDK_ERROR", "Failed to reset SDK preferences", e);
         }
     }
 }

@@ -106,29 +106,99 @@ import {
 } from "react-native-clickio-sdk";
 
 const initConsent = async () => {
-  const result = await initializeSDK("your-site-id", "en");
+  const result = await initializeSDK("your-site-id", "en", "default");
   console.log(result); // ClickioConsentSDK initialized
 };
 ```
 
-### Show Consent Dialog
+## Setup and Usage
+
+### App Tracking Transparency (ATT) Permission
+
+`Clickio SDK` supports [two distinct scenarios](#example-scenarios) for handling ATT permissions If your app collects and shares user data with third parties for tracking across apps or websites, **you must**:
+
+1. Add the [`NSUserTrackingUsageDescription`](https://developer.apple.com/documentation/BundleResources/Information-Property-List/NSUserTrackingUsageDescription) key in your `Info.plist`.
+2. Choose an ATT permission handling strategy using the [`openDialog`](#opening-the-consent-dialog) method.
+
+If you're managing ATT permissions manually and have already added [`NSUserTrackingUsageDescription`](https://developer.apple.com/documentation/BundleResources/Information-Property-List/NSUserTrackingUsageDescription), you can skip ATT integration here and just use the consent flow.
+
+#### Important:
+
+- **make sure that user has given permission in the ATT dialog and only then perform [`openDialog`](#opening-the-consent-dialog) method call! Showing CMP regardless given ATT Permission is not recommended by Apple. Moreover, [`openDialog`](#opening-the-consent-dialog) API call can be blocked by Apple until user makes their choice.**
+
+👉 See [User Privacy and Data Use](https://developer.apple.com/app-store/user-privacy-and-data-use/) and [App Privacy Details](https://developer.apple.com/app-store/app-privacy-details/) for more details.
+
+---
+
+### Singleton Access
+
+## All methods should be accessed via a singleton instance of the SDK:
+
+---
+
+### Handling SDK Readiness
+
+Make sure to use SDK methods **after** the SDK is fully ready. You can do this via your app lifecycle or after `initialize`
+
+### Handling `singleTask` Launch Mode and Consent Dialog
+
+When your app's Android MainActivity is configured with `launchMode="singleTask"` (set in `AndroidManifest.xml`), returning to the app (e.g., via the launcher icon) can cause the Consent Dialog to close unexpectedly.
+
+To ensure the Consent Dialog is displayed correctly when the launch mode set to `"singleTask"`, you should listen to app lifecycle events and reopen the dialog if needed when the app becomes active again.
+
+#### Example:
 
 ```ts
-const showDialog = async () => {
-  try {
-    const result = await openDialog();
-    console.log(result); // { status: 'success', message: 'Consent Dialog Opened' }
-  } catch (err) {
-    console.error(err);
+const appState = useRef<AppStateStatus>(AppState.currentState);
+
+useEffect(() => {
+  const subscription = AppState.addEventListener(
+    "change",
+    handleAppStateChange
+  );
+  return () => {
+    subscription.remove();
+  };
+}, []);
+
+const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+  if (
+    appState.current.match(/inactive|background/) &&
+    nextAppState === "active"
+  ) {
+    // initialize
   }
+  appState.current = nextAppState;
 };
 ```
+
+#### Opening the Consent Dialog
+
+To open the consent dialog:
+
+```dart
+await openDialog(
+  mode: "resurface", // or "defaultMode"
+  attNeeded: true,
+);
+```
+
+#### Parameters:
+
+- `mode` - defines when the dialog should be shown. Possible values::
+  - `defaultMode` – Opens the dialog if GDPR applies and user hasn't given consent.
+  - `resurface` – Always forces dialog to open, regardless of the user’s jurisdiction, allowing users to modify settings for GDPR compliance or to opt out under US regulations.
+- `attNeeded`: Determines if ATT is required.
+
+> 💡 If your app has its own ATT Permission manager you just pass `false` in `attNeeded` parameter and call your own ATT method. Keep in mind that in this case consent screen will be shown regardless given ATT Permission.
+
+````
 
 ### Enable Logging
 
 ```ts
 await setClickioLogging(true); // Enables verbose mode in native SDK logs
-```
+````
 
 ---
 

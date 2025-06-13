@@ -11,7 +11,9 @@ RCT_EXTERN_METHOD(testConnection:(RCTPromiseResolveBlock)resolve reject:(RCTProm
 RCT_EXTERN_METHOD(initializeConsentSDK:(NSDictionary *)options
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
-RCT_EXTERN_METHOD(openDialog:(RCTResponseSenderBlock)callback)
+RCT_EXTERN_METHOD(openDialog:(NSDictionary *)options
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getConsentData:(RCTResponseSenderBlock)callback)
 RCT_EXTERN_METHOD(requestATTPermission:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
@@ -28,5 +30,6 @@ RCT_EXTERN_METHOD(isAirbridgeAvailable:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(isAppsFlyerAvailable:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(setClickioLogging:(BOOL)isEnabled)
-
+RCT_EXTERN_METHOD(resetData:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
 @end

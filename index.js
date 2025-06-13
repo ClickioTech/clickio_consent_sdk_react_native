@@ -10,11 +10,11 @@ const NativeModule = isIOS ? ClickioConsentManagerModule : ClickioSDKModule;
 /**
  * Opens the consent dialog and resolves the promise based on the user's response.
  */
-const openConsentDialog = () => {
+const openConsentDialog = (mode) => {
   return new Promise((resolve, reject) => {
     try {
       if (isIOS) {
-        NativeModule.openConsentDialog((response) => {
+        NativeModule.openDialog(mode, (response) => {
           // Handle response based on status
           if (response.status === "success") {
             resolve(response);
@@ -23,7 +23,7 @@ const openConsentDialog = () => {
           }
         });
       } else {
-        NativeModule.openDialog((response) => {
+        NativeModule.openDialog(mode, (response) => {
           // Handle response based on status
           if (response.status === "success") {
             resolve(response);
@@ -45,8 +45,9 @@ const openConsentDialog = () => {
  * Supports both iOS and Android with platform-specific handling.
  * @param {string} siteId - The site ID for SDK initialization.
  * @param {string} language - Language for the SDK (default: "en").
+ * @param {string} mode
  */
-const initializeSDK = async (siteId, language = "en") => {
+const initializeSDK = async (siteId, language = "en", mode = "default") => {
   if (isIOS) {
     try {
       // Request ATT permission on iOS
@@ -60,7 +61,7 @@ const initializeSDK = async (siteId, language = "en") => {
       console.log("iOS SDK init result:", result);
 
       // Show consent dialog after initialization
-      return openConsentDialog();
+      return openConsentDialog(mode);
     } catch (error) {
       console.error("initializeSDK (iOS) error:", error);
       throw error;
@@ -70,7 +71,7 @@ const initializeSDK = async (siteId, language = "en") => {
     return new Promise((resolve, reject) => {
       try {
         NativeModule.initializeSDK(siteId, language);
-        NativeModule.onReady((msg) => resolve(msg)); // Resolve when ready
+        NativeModule.onReady(mode, (msg) => resolve(msg)); // Resolve when ready
       } catch (error) {
         reject(new Error("SDK initialization failed on Android."));
       }
@@ -78,6 +79,28 @@ const initializeSDK = async (siteId, language = "en") => {
   }
 };
 
+// ---------- Android ONready  ----------
+/**
+ * Initializes the SDK and triggers the consent dialog.
+ * Supports both iOS and Android with platform-specific handling.
+ * @param {string} dialogMode - The site ID for SDK initialization.
+ * @returns {Promise<string>} Resolves when SDK is ready
+
+ */
+const onReady = (dialogMode) => {
+  NativeModule.onReady(dialogMode, (message) => {
+    resolve(message);
+  });
+};
+const resetAppData = async (siteId, language) => {
+  if (isIOS) {
+    ClickioConsentManagerModule.resetData().then((res) => {
+      initializeSDK(siteId, language);
+    });
+  } else {
+    await NativeModule.resetSDK();
+  }
+};
 // ---------- Logging (Android only) ----------
 /**
  * Starts logging logs on Android.
@@ -237,4 +260,6 @@ module.exports = {
   sendManualConsentToAppsFlyer,
   syncClickioConsentWithFirebase,
   getGoogleConsentFlagsAndroid,
+  resetAppData,
+  onReady,
 };

@@ -69,7 +69,9 @@ func initializeConsentSDK(_ options: NSDictionary,
 }
 
 
-@objc func openDialog(_ callback: @escaping RCTResponseSenderBlock) {
+ @objc func openDialog(_ options: NSDictionary,
+                          resolve: @escaping RCTPromiseResolveBlock,
+                          reject: @escaping RCTPromiseRejectBlock) {
   DispatchQueue.main.async {
     if let rootViewController = UIApplication.shared.connectedScenes
         .compactMap({ $0 as? UIWindowScene })
@@ -77,14 +79,20 @@ func initializeConsentSDK(_ options: NSDictionary,
         .first(where: { $0.isKeyWindow })?
         .rootViewController {
 
+ let modeString = (options["mode"] as? String ?? "default").lowercased()
+      let dialogMode: ClickioConsentSDK.DialogMode = (modeString == "resurface") ? .resurface : .default
+    
       ClickioConsentSDK.shared.openDialog(
-        mode: .resurface,    //default
+        mode:dialogMode,
         in: rootViewController,
         attNeeded: true
       )
-      callback([["status": "success", "message": "Consent Dialog Opened"]])
+
+          resolve(["status": "success", "message": "Consent Dialog Opened"])
+
     } else {
-      callback([["status": "error", "message": "Failed to find root view controller"]])
+            reject("NO_ROOT_VIEW", "Failed to find root view controller", nil)
+
     }
   }
 }
@@ -205,6 +213,20 @@ func initializeConsentSDK(_ options: NSDictionary,
     Ad Personalization: \(googleConsent?.adPersonalizationGranted ?? false)
     """
   resolve(formatted)
+}
+
+ @objc(resetData:reject:)
+func resetData(resolve: @escaping RCTPromiseResolveBlock,
+               reject: @escaping RCTPromiseRejectBlock) {
+  DispatchQueue.main.async {
+    let userDefaults = UserDefaults.standard
+
+    userDefaults.removeObject(forKey: "clickio_consent_status")
+    userDefaults.removeObject(forKey: "clickio_user_preference")
+
+    userDefaults.synchronize()
+    resolve(["status": "success", "message": "React Native cache cleared"])
+  }
 }
 
 }
