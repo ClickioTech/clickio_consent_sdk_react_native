@@ -163,14 +163,16 @@ func initializeConsentSDK(_ options: NSDictionary,
          ]
     let isGoogleConsentModeEnabled = flags.contains(true)
 
-         if isGoogleConsentModeEnabled {
-           print("Google Consent Mode is enabled — no manual flags needed.")
-           return
-         }
+        
+  let response: [String: Any] = [
+    "googleConsentModeEnabled": isGoogleConsentModeEnabled,
+    "adStorageGranted": adStorageGranted,
+    "adUserDataGranted": adUserDataGranted,
+    "adPersonalizationGranted": adPersonalizationGranted,
+    "analyticsStorageGranted": analyticsStorageGranted
+  ]
 
-       
-         print("Google Consent Mode is disabled — sending flags manually.")
-        //   add your Analytics set consent here
+  callback([["status": "success", "data": response]])    //   add your Analytics set consent here
     
   }
   

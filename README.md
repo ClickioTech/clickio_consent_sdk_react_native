@@ -273,3 +273,57 @@ If the **Firebase Analytics SDK** is present in the project, the Clickio SDK wil
   - If an error occurs, an error message will appear in the logs.
 
 > 🔄 Make sure you're using a compatible version of Firebase Analytics. You may need to update to the latest version if issues arise.
+
+## 🕓 Delaying Google Mobile Ads Until ATT and User Consent
+
+To comply with privacy regulations (GDPR, CCPA) and platform policies, you **must delay Google Mobile Ads initialization** until you’ve:
+
+1. **Shown Apple's App Tracking Transparency (ATT) prompt** (on iOS)
+2. **Displayed the Clickio consent dialog** to the user
+3. **Received and stored the user’s consent decision**
+
+### ✅ Implementation Steps
+
+1. **Request ATT authorization (iOS only)** using `react-native-tracking-transparency`
+2. **Wait for the ClickioConsentSDK `onReady` callback**, then show the consent dialog
+3. **Wait for the `onConsentUpdated` callback**, and check that the consent state is no longer `"gdprNoDecision"`
+4. **Only after that**, initialize Google Mobile Ads and load your ad units
+
+### 💻 Example
+
+```ts
+import { Platform } from "react-native";
+import { requestTrackingPermission } from "react-native-tracking-transparency";
+import { ClickioConsentSDK } from "react-native-clickio-sdk";
+import { MobileAds } from "react-native-google-mobile-ads";
+
+let adsStarted = false;
+
+async function setupAdsWithConsent() {
+  // iOS: Ask for ATT
+  if (Platform.OS === "ios") {
+    await requestTrackingPermission();
+  }
+
+  // Set Clickio Consent Listeners
+  ClickioConsentSDK.setListener({
+    onReady: () => {
+      ClickioConsentSDK.openDialog();
+    },
+    onConsentUpdated: async () => {
+      const consent = await ClickioConsentSDK.checkConsentState();
+
+      if (consent !== "gdprNoDecision" && !adsStarted) {
+        adsStarted = true;
+        await MobileAds().initialize();
+        // You can now safely load ads (e.g., banners, interstitials, etc.)
+      }
+    },
+  });
+
+  // Optional: Initialize Clickio SDK if needed
+  ClickioConsentSDK.initialize();
+}
+```
+
+> 💡 **Tip:** Avoid calling `MobileAds().initialize()` more than once. Use a flag like `adsStarted` or check `MobileAds().isInitialized`.
