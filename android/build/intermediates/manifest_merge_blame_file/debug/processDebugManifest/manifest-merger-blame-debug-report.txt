@@ -1,0 +1,16 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.clickio.clickioapp" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+6
+7    <!-- Optional: If your SDK needs permissions -->
+8<!--     <uses-permission android:name="android.permission.INTERNET" /> -->
+9    <uses-permission android:name="android.permission.INTERNET" />
+9-->/Users/admin/Documents/demo/clickiodemo/node_modules/react-native-clickio-sdk/android/src/main/AndroidManifest.xml:8:7-68
+9-->/Users/admin/Documents/demo/clickiodemo/node_modules/react-native-clickio-sdk/android/src/main/AndroidManifest.xml:8:24-66
+10    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+10-->/Users/admin/Documents/demo/clickiodemo/node_modules/react-native-clickio-sdk/android/src/main/AndroidManifest.xml:9:5-78
+10-->/Users/admin/Documents/demo/clickiodemo/node_modules/react-native-clickio-sdk/android/src/main/AndroidManifest.xml:9:22-76
+11
+12</manifest>
