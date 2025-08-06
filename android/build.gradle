@@ -32,6 +32,6 @@ repositories {
 
 dependencies {
     implementation "com.facebook.react:react-native:+"
- implementation "com.clickio:clickioconsentsdk:1.0.0-rc7"
+ implementation "com.clickio:clickioconsentsdk:1.0.0-rc12"
    
 }
