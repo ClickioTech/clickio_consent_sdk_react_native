@@ -9,6 +9,40 @@ This SDK supports integrations with third-party tools like Firebase, Adjust, Air
 
 Before integrating the ClickioConsentSdk (hereinafter referred to as the **Clickio SDK**), ensure that your React Native application meets the following requirements:
 
+## WebView Consent Synchronization
+
+### Overview
+
+When your React Native app displays web content inside a WebView (for example, embedded websites, widgets, or ads), it is important to **synchronize user consent**.  
+Without synchronization, the Consent Management Platform (CMP) dialog may appear twice — once in the app layer and once in the WebView content.
+
+The `ConsentWebView` component allows you to pass saved Clickio consent data to your web content, ensuring the WebView respects the user’s previous consent choices.  
+This provides a seamless experience and prevents duplicate consent prompts.
+
+**Tip:** Use this whenever you need to show web content that must comply with user consent already collected in the app.
+
+---
+
+### WebViewConfig Class
+
+The `WebViewConfig` class allows you to configure the WebView appearance, similar to Flutter:
+
+````ts
+export interface WebViewConfig {
+  /** Background color of the WebView. Default: 'transparent' */
+  backgroundColor?: string;
+
+  /** Height of the WebView in pixels. Default: undefined (fills available space) */
+  height?: number;
+
+  /** Width of the WebView in pixels. Default: undefined (fills available space) */
+  width?: number;
+
+  /** Alignment of the WebView content inside its container. Default: 'center' */
+  gravity?: "top" | "center" | "bottom";
+}
+
+
 ### Android
 
 - **Minimum SDK Version**: 21 (Android 5.0)
@@ -18,7 +52,7 @@ Before integrating the ClickioConsentSdk (hereinafter referred to as the **Click
 ```xml
 <uses-permission android:name="android.permission.INTERNET"/>
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-```
+````
 
 ---
 

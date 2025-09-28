@@ -231,4 +231,132 @@ func resetData(resolve: @escaping RCTPromiseResolveBlock,
   }
 }
 
+ @objc
+    func webviewLoadUrl(_ options: NSDictionary,
+                        resolve: @escaping RCTPromiseResolveBlock,
+                        reject: @escaping RCTPromiseRejectBlock) {
+        guard let urlString = (options["url"] as? String) else {
+            reject("E_INVALID_URL", "Invalid or missing URL", nil)
+            return
+        }
+      var bgHex = "#FFFFFF"
+        if let cfg = options["config"] as? NSDictionary {
+            if let b = cfg["backgroundColor"] as? String { bgHex = b }
+        } else {
+            if let b = options["backgroundColor"] as? String { bgHex = b }
+        }
+
+        var width: CGFloat? = nil
+        if let cfg = options["config"] as? NSDictionary {
+            if let w = cfg["width"] as? NSNumber { width = CGFloat(truncating: w) }
+        } else {
+            if let w = options["width"] as? NSNumber { width = CGFloat(truncating: w) }
+        }
+
+        var height: CGFloat? = nil
+        if let cfg = options["config"] as? NSDictionary {
+            if let h = cfg["height"] as? NSNumber { height = CGFloat(truncating: h) }
+        } else {
+            if let h = options["height"] as? NSNumber { height = CGFloat(truncating: h) }
+        }
+
+        var gravity: WebViewGravity = .center
+        if let cfg = options["config"] as? NSDictionary, let g = cfg["gravity"] as? String {
+            gravity = WebViewGravity(rawValue: g) ?? .center
+        } else if let g = options["gravity"] as? String {
+            gravity = WebViewGravity(rawValue: g) ?? .center
+        }
+
+        let config = WebViewConfig(
+            backgroundColor: UIColor(hex: bgHex),
+            width: width,
+            height: height,
+            gravity: gravity
+        )
+
+        DispatchQueue.main.async {
+            let controller = WebViewController(urlString: urlString, config: config)
+            let controllerId = UUID().uuidString
+            self.webControllers[controllerId] = controller
+
+            if let rootVC = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .flatMap({ $0.windows })
+                .first(where: { $0.isKeyWindow })?
+                .rootViewController {
+
+                controller.modalPresentationStyle = .overFullScreen
+                controller.modalTransitionStyle = .coverVertical
+
+                rootVC.present(controller, animated: true) {
+                    resolve(["status": "shown", "controllerId": controllerId])
+                }
+            } else {
+                 resolve(["status": "created", "controllerId": controllerId])
+            }
+        }
+    }
+
+    @objc
+    func showController(_ controllerId: String,
+                        resolve: @escaping RCTPromiseResolveBlock,
+                        reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            guard let vc = self.webControllers[controllerId] else {
+                reject("E_NOT_FOUND", "No controller found for id \(controllerId)", nil)
+                return
+            }
+            guard let rootVC = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .flatMap({ $0.windows })
+                .first(where: { $0.isKeyWindow })?
+                .rootViewController else {
+                reject("E_NO_ROOT", "Failed to find root view controller", nil)
+                return
+            }
+
+            vc.modalPresentationStyle = .overFullScreen
+            rootVC.present(vc, animated: true) {
+                resolve(["status": "shown", "controllerId": controllerId])
+            }
+        }
+    }
+
+    @objc
+    func dismissController(_ controllerId: String,
+                           resolve: @escaping RCTPromiseResolveBlock,
+                           reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            if let controller = self.webControllers[controllerId] {
+               
+                if controller.presentingViewController != nil {
+                    controller.dismiss(animated: true) {
+                        controller.cleanup()
+                        self.webControllers.removeValue(forKey: controllerId)
+                        resolve(["status": "dismissed", "controllerId": controllerId])
+                    }
+                } else {
+                   
+                    if controller.parent != nil {
+                        controller.willMove(toParent: nil)
+                        controller.view.removeFromSuperview()
+                        controller.removeFromParent()
+                    }
+                    controller.cleanup()
+                    self.webControllers.removeValue(forKey: controllerId)
+                    resolve(["status": "dismissed", "controllerId": controllerId])
+                }
+            } else {
+                reject("E_NOT_FOUND", "Controller not found", nil)
+            }
+        }
+    }
+
+    @objc
+    func closeWebView(_ controllerId: String,
+                      resolve: @escaping RCTPromiseResolveBlock,
+                      reject: @escaping RCTPromiseRejectBlock) {
+        dismissController(controllerId, resolve: resolve, reject: reject)
+    }
+
 }

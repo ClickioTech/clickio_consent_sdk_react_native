@@ -32,4 +32,14 @@ RCT_EXTERN_METHOD(isAppsFlyerAvailable:(RCTPromiseResolveBlock)resolve
 RCT_EXTERN_METHOD(setClickioLogging:(BOOL)isEnabled)
 RCT_EXTERN_METHOD(resetData:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(webviewLoadUrl:(NSDictionary *)options
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(showController:(NSString *)controllerId
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(dismissController:(NSString *)controllerId
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
 @end

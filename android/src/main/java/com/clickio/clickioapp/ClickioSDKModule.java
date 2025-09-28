@@ -1,9 +1,16 @@
 package com.clickio.clickioapp;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+
+import androidx.annotation.Nullable;
+import androidx.fragment.app.FragmentActivity;
 
 import com.clickio.clickioconsentsdk.ClickioConsentSDK;
 import com.clickio.clickioconsentsdk.ClickioConsentSDK.Config;
@@ -22,10 +29,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class ClickioSDKModule extends ReactContextBaseJavaModule {
     private static final String TAG = "ClickioSDK";
-    private static boolean isInitialized = false; 
+    private static boolean isInitialized = false;
+    private static CustomWebViewDialog currentDialog = null;
+private static final Map<String, CustomWebViewDialog> controllerRegistry = new HashMap<>();
+
 
     public ClickioSDKModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -51,6 +62,90 @@ public class ClickioSDKModule extends ReactContextBaseJavaModule {
         Log.d(TAG, "SDK initialized with language: " + configLanguage);
     }
 
+
+@ReactMethod
+public void webviewLoadUrl(ReadableMap options, Promise promise) {
+    try {
+        String url = options.hasKey("url") ? options.getString("url") : null;
+        if (url == null || url.isEmpty()) {
+            promise.reject("E_INVALID_URL", "Missing URL");
+            return;
+        }
+
+        int width = options.hasKey("width") ? options.getInt("width") : ViewGroup.LayoutParams.MATCH_PARENT;
+        int height = options.hasKey("height") ? options.getInt("height") : ViewGroup.LayoutParams.MATCH_PARENT;
+String gravityStr = options.hasKey("gravity") ? options.getString("gravity") : "center";
+int gravity;
+
+switch (gravityStr.toLowerCase()) {
+    case "top":
+        gravity = Gravity.TOP;
+        break;
+    case "bottom":
+        gravity = Gravity.BOTTOM;
+        break;
+    case "left":
+        gravity = Gravity.LEFT;
+        break;
+    case "right":
+        gravity = Gravity.RIGHT;
+        break;
+    case "center":
+    default:
+        gravity = Gravity.CENTER;
+        break;
+}
+        String bgColor = options.hasKey("backgroundColor") ? options.getString("backgroundColor") : "transparent";
+
+        String controllerId = UUID.randomUUID().toString();
+
+        FragmentActivity activity = (FragmentActivity) getCurrentActivity();
+        if (activity == null) {
+            promise.reject("E_NO_ACTIVITY", "No current activity");
+            return;
+        }
+
+        CustomWebViewDialog dialog = new CustomWebViewDialog(controllerId, url, width, height, gravity, bgColor, this);
+        controllerRegistry.put(controllerId, dialog);
+
+        
+        activity.runOnUiThread(() -> {
+            try {
+                dialog.show(activity.getSupportFragmentManager(), controllerId);
+                promise.resolve(controllerId);
+            } catch (Exception e) {
+                promise.reject("E_DIALOG_ERROR", e);
+            }
+        });
+    } catch (Exception e) {
+        promise.reject("E_WEBVIEW_ERROR", e);
+    }
+}
+
+
+@ReactMethod
+public void dismissController(String controllerId, Promise promise) {
+    CustomWebViewDialog overlay = controllerRegistry.get(controllerId);
+    if (overlay != null) {
+        overlay.dismiss();
+        controllerRegistry.remove(controllerId);
+        promise.resolve("dismissed");
+    } else {
+        promise.reject("E_NOT_FOUND", "Controller not found");
+    }
+}
+
+
+    public void sendWebViewEvent(String event, @Nullable String controllerId, @Nullable String url) {
+        WritableMap map = Arguments.createMap();
+        map.putString("event", event);
+        if (controllerId != null) map.putString("controllerId", controllerId);
+        if (url != null) map.putString("url", url);
+
+        getReactApplicationContext()
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit("ClickioWebViewEvent", map);
+    }
 @ReactMethod
 public void onReady(String dialogModeStr, Callback callback) {
     Log.d(TAG, "onReady called from JS with mode: " + dialogModeStr);
@@ -277,4 +372,8 @@ public void getGoogleConsentFlags(Promise promise) {
             promise.reject("RESET_SDK_ERROR", "Failed to reset SDK preferences", e);
         }
     }
+    @ReactMethod
+public void openDialog(ReadableMap options, Promise promise) {
+    webviewLoadUrl(options, promise);
+}
 }

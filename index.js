@@ -2,39 +2,31 @@ const { NativeModules, Platform, DeviceEventEmitter } = require("react-native");
 
 const { ClickioSDKModule, ClickioConsentManagerModule } = NativeModules;
 
-// Determine the platform (iOS or Android)
 const isIOS = Platform.OS === "ios";
 const NativeModule = isIOS ? ClickioConsentManagerModule : ClickioSDKModule;
 
 // ---------- Consent Dialog ----------
 /**
  * Opens the consent dialog and resolves the promise based on the user's response.
+ * Supports passing options like mode, width, height, gravity, backgroundColor.
  */
-const openConsentDialog = (mode) => {
+const openConsentDialog = (options = {}) => {
   return new Promise((resolve, reject) => {
     try {
       if (isIOS) {
-        NativeModule.openDialog(mode, (response) => {
-          // Handle response based on status
-          if (response.status === "success") {
+        NativeModule.webviewLoadUrl(options, (response) => {
+          if (response.status === "shown" || response.status === "success") {
             resolve(response);
           } else {
             reject(new Error(`Consent Dialog failed: ${response.status}`));
           }
         });
       } else {
-        NativeModule.openDialog(mode, (response) => {
-          // Handle response based on status
-          if (response.status === "success") {
-            resolve(response);
-          } else {
-            reject(new Error(`Consent Dialog failed: ${response.status}`));
-          }
-        });
+        NativeModule.webviewLoadUrl(options).then(resolve).catch(reject);
       }
     } catch (error) {
-      console.error("NativeModule.openDialog::", error);
-      reject(error); // Reject with the error
+      console.error("NativeModule.openConsentDialog::", error);
+      reject(error);
     }
   });
 };
@@ -43,35 +35,29 @@ const openConsentDialog = (mode) => {
 /**
  * Initializes the SDK and triggers the consent dialog.
  * Supports both iOS and Android with platform-specific handling.
- * @param {string} siteId - The site ID for SDK initialization.
- * @param {string} language - Language for the SDK (default: "en").
+ * @param {string} siteId
+ * @param {string} language
  * @param {string} mode
  */
 const initializeSDK = async (siteId, language = "en", mode = "default") => {
   if (isIOS) {
     try {
-      // Request ATT permission on iOS
       await NativeModule.requestATTPermission();
-
-      // Initialize SDK with siteId and language
       const result = await NativeModule.initializeConsentSDK({
         siteId,
-        language,
+        appLanguage: language,
       });
       console.log("iOS SDK init result:", result);
-
-      // Show consent dialog after initialization
-      return openConsentDialog(mode);
+      return openConsentDialog({ mode });
     } catch (error) {
       console.error("initializeSDK (iOS) error:", error);
       throw error;
     }
   } else {
-    // Android-specific SDK initialization
     return new Promise((resolve, reject) => {
       try {
         NativeModule.initializeSDK(siteId, language);
-        NativeModule.onReady(mode, (msg) => resolve(msg)); // Resolve when ready
+        NativeModule.onReady(mode, (msg) => resolve(msg));
       } catch (error) {
         reject(new Error("SDK initialization failed on Android."));
       }
@@ -79,59 +65,35 @@ const initializeSDK = async (siteId, language = "en", mode = "default") => {
   }
 };
 
-// ---------- Android ONready  ----------
+// ---------- Reset App Data ----------
 /**
- * Initializes the SDK and triggers the consent dialog.
- * Supports both iOS and Android with platform-specific handling.
- * @param {string} dialogMode - The site ID for SDK initialization.
- * @returns {Promise<string>} Resolves when SDK is ready
-
+ * Clears SDK data and re-initializes.
  */
-const onReady = (dialogMode) => {
-  NativeModule.onReady(dialogMode, (message) => {
-    resolve(message);
-  });
-};
 const resetAppData = async (siteId, language) => {
   if (isIOS) {
-    ClickioConsentManagerModule.resetData().then((res) => {
-      initializeSDK(siteId, language);
-    });
+    await ClickioConsentManagerModule.resetData();
+    return initializeSDK(siteId, language);
   } else {
     await NativeModule.resetSDK();
+    return initializeSDK(siteId, language);
   }
 };
+
 // ---------- Logging (Android only) ----------
-/**
- * Starts logging logs on Android.
- */
 const startLoggingLogsFromAndroid = () => {
   if (!isIOS) {
     ClickioSDKModule.startLoggingLogsFromAndroid();
   }
 };
 
-// ---------- Log Listener ----------
-/**
- * Listens to logs from the native module (Android only).
- * @param {function} callback - Callback to handle incoming logs.
- */
 const listenToLogs = (callback) => {
   return DeviceEventEmitter.addListener("ClickioLog", callback);
 };
 
 // ---------- Consent Flags ----------
-/**
- * Retrieves the Google Consent Flags.
- */
-const getGoogleConsentFlags = () => {
-  return NativeModule.getGoogleConsentFlags();
-};
+const getGoogleConsentFlags = () => NativeModule.getGoogleConsentFlags();
 
 // ---------- Export Data ----------
-/**
- * Retrieves consent data or export data.
- */
 const getExportData = () => {
   if (isIOS) {
     return new Promise((resolve, reject) => {
@@ -144,108 +106,47 @@ const getExportData = () => {
       });
     });
   } else {
-    // Android-specific export data
     return NativeModules.ExportDataModule.getAllExportData();
   }
 };
 
 // ---------- SDK Availability Checks (Android only) ----------
-/**
- * Checks if Firebase is available (Android only).
- */
-const isFirebaseAvailable = () => {
-  return isIOS
-    ? Promise.resolve(false)
-    : ClickioSDKModule.isFirebaseAvailable();
-};
-
-/**
- * Checks if Adjust is available (Android only).
- */
-const isAdjustAvailable = () => {
-  return isIOS ? Promise.resolve(false) : ClickioSDKModule.isAdjustAvailable();
-};
-
-/**
- * Checks if Airbridge is available (Android only).
- */
-const isAirbridgeAvailable = () => {
-  return isIOS
-    ? Promise.resolve(false)
-    : ClickioSDKModule.isAirbridgeAvailable();
-};
-
-/**
- * Checks if AppsFlyer is available (Android only).
- */
-const isAppsFlyerAvailable = () => {
-  return isIOS
-    ? Promise.resolve(false)
-    : ClickioSDKModule.isAppsFlyerAvailable();
-};
+const isFirebaseAvailable = () =>
+  isIOS ? Promise.resolve(false) : ClickioSDKModule.isFirebaseAvailable();
+const isAdjustAvailable = () =>
+  isIOS ? Promise.resolve(false) : ClickioSDKModule.isAdjustAvailable();
+const isAirbridgeAvailable = () =>
+  isIOS ? Promise.resolve(false) : ClickioSDKModule.isAirbridgeAvailable();
+const isAppsFlyerAvailable = () =>
+  isIOS ? Promise.resolve(false) : ClickioSDKModule.isAppsFlyerAvailable();
 
 // ---------- Manual Consent Dispatch (Android only) ----------
-/**
- * Sends manual consent to Firebase (Android only).
- * @param {boolean} consent - Consent status (true/false).
- */
-const sendManualConsentToFirebase = (consent) => {
-  if (!isIOS) {
-    ClickioSDKModule.sendManualConsentToFirebase(consent);
-  }
-};
+const sendManualConsentToFirebase = (consent) =>
+  !isIOS && ClickioSDKModule.sendManualConsentToFirebase(consent);
+const sendManualConsentToAdjust = (consent) =>
+  !isIOS && ClickioSDKModule.sendManualConsentToAdjust(consent);
+const sendManualConsentToAirbridge = (consent) =>
+  !isIOS && ClickioSDKModule.sendManualConsentToAirbridge(consent);
+const sendManualConsentToAppsFlyer = (consent) =>
+  !isIOS && ClickioSDKModule.sendManualConsentToAppsFlyer(consent);
 
-/**
- * Sends manual consent to Adjust (Android only).
- * @param {boolean} consent - Consent status (true/false).
- */
-const sendManualConsentToAdjust = (consent) => {
-  if (!isIOS) {
-    ClickioSDKModule.sendManualConsentToAdjust(consent);
-  }
-};
+// ---------- Sync Android Consent ----------
+const syncClickioConsentWithFirebase = () =>
+  !isIOS
+    ? ClickioSDKModule.syncClickioConsentWithFirebase()
+    : Promise.resolve("Not applicable on iOS");
+const getGoogleConsentFlagsAndroid = () => NativeModule.getGoogleConsentFlags();
 
+// ---------- Reset App Data ----------
 /**
- * Sends manual consent to Airbridge (Android only).
- * @param {boolean} consent - Consent status (true/false).
+ * Clears SDK data and re-initializes.
  */
-const sendManualConsentToAirbridge = (consent) => {
-  if (!isIOS) {
-    ClickioSDKModule.sendManualConsentToAirbridge(consent);
-  }
-};
-
-/**
- * Sends manual consent to AppsFlyer (Android only).
- * @param {boolean} consent - Consent status (true/false).
- */
-const sendManualConsentToAppsFlyer = (consent) => {
-  if (!isIOS) {
-    ClickioSDKModule.sendManualConsentToAppsFlyer(consent);
-  }
-};
-
-/**
- * Syncs Clickio consent with Firebase (Android only).
- */
-export const syncClickioConsentWithFirebase = () => {
-  if (!isIOS) {
-    return ClickioSDKModule.syncClickioConsentWithFirebase();
-  }
-  return Promise.resolve("Not applicable on iOS");
-};
-
-/**
- * Retrieves Google consent flags specifically for Android.
- */
-export const getGoogleConsentFlagsAndroid = () => {
-  return NativeModule.getGoogleConsentFlags();
-};
 
 // ---------- Exported Methods ----------
 module.exports = {
   initializeSDK,
   openConsentDialog,
+  resetAppData,
   startLoggingLogsFromAndroid,
   listenToLogs,
   getGoogleConsentFlags,
@@ -260,6 +161,4 @@ module.exports = {
   sendManualConsentToAppsFlyer,
   syncClickioConsentWithFirebase,
   getGoogleConsentFlagsAndroid,
-  resetAppData,
-  onReady,
 };
