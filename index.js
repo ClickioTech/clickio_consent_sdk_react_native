@@ -137,10 +137,27 @@ const syncClickioConsentWithFirebase = () =>
     : Promise.resolve("Not applicable on iOS");
 const getGoogleConsentFlagsAndroid = () => NativeModule.getGoogleConsentFlags();
 
-// ---------- Reset App Data ----------
-/**
- * Clears SDK data and re-initializes.
- */
+//  WebViewConfig type  {
+//   backgroundColor?: string;
+//   width?: number;
+//   height?: number;
+//   gravity?: "top" | "center" | "bottom";
+// };
+
+export async function webviewLoadUrl(url, config) {
+  if (Platform.OS === "ios") {
+    return await ClickioConsentManagerModule.webviewLoadUrl(url, config);
+  } else {
+    await ClickioSDKModule.openDialog({
+      url,
+      width: config?.width ?? -1,
+      height: config?.height ?? -1,
+      backgroundColor: config?.backgroundColor ?? "transparent",
+      gravity: config?.gravity ?? "center",
+    });
+    return {};
+  }
+}
 
 // ---------- Exported Methods ----------
 module.exports = {
@@ -161,4 +178,5 @@ module.exports = {
   sendManualConsentToAppsFlyer,
   syncClickioConsentWithFirebase,
   getGoogleConsentFlagsAndroid,
+  webviewLoadUrl,
 };

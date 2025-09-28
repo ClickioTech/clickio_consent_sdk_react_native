@@ -18,6 +18,8 @@ public enum ConsentType {
 
 @objc(ClickioConsentManagerModule)
 class ClickioConsentManagerModule: NSObject {
+      private var webControllers: [String: CMPWebViewController] = [:]
+
    @objc static func moduleName() -> String {
     return "ClickioConsentManagerModule"
   }
@@ -231,71 +233,35 @@ func resetData(resolve: @escaping RCTPromiseResolveBlock,
   }
 }
 
- @objc
-    func webviewLoadUrl(_ options: NSDictionary,
-                        resolve: @escaping RCTPromiseResolveBlock,
-                        reject: @escaping RCTPromiseRejectBlock) {
-        guard let urlString = (options["url"] as? String) else {
-            reject("E_INVALID_URL", "Invalid or missing URL", nil)
-            return
+@objc
+func webviewLoadUrl(_ options: NSDictionary,
+                    resolve: @escaping RCTPromiseResolveBlock,
+                    reject: @escaping RCTPromiseRejectBlock) {
+    guard let urlString = options["url"] as? String,
+          let url = URL(string: urlString) else {
+        reject("INVALID_URL", "Missing or invalid URL", nil)
+        return
+    }
+
+    let controller = CMPWebViewController(url: url)
+
+    if let config = options["config"] as? [String: Any] {
+        if let width = config["width"] as? CGFloat { controller.width = width }
+        if let height = config["height"] as? CGFloat { controller.height = height }
+        if let bgColorHex = config["backgroundColor"] as? String {
+            controller.backgroundColor = UIColor(hex: bgColorHex)
         }
-      var bgHex = "#FFFFFF"
-        if let cfg = options["config"] as? NSDictionary {
-            if let b = cfg["backgroundColor"] as? String { bgHex = b }
-        } else {
-            if let b = options["backgroundColor"] as? String { bgHex = b }
-        }
-
-        var width: CGFloat? = nil
-        if let cfg = options["config"] as? NSDictionary {
-            if let w = cfg["width"] as? NSNumber { width = CGFloat(truncating: w) }
-        } else {
-            if let w = options["width"] as? NSNumber { width = CGFloat(truncating: w) }
-        }
-
-        var height: CGFloat? = nil
-        if let cfg = options["config"] as? NSDictionary {
-            if let h = cfg["height"] as? NSNumber { height = CGFloat(truncating: h) }
-        } else {
-            if let h = options["height"] as? NSNumber { height = CGFloat(truncating: h) }
-        }
-
-        var gravity: WebViewGravity = .center
-        if let cfg = options["config"] as? NSDictionary, let g = cfg["gravity"] as? String {
-            gravity = WebViewGravity(rawValue: g) ?? .center
-        } else if let g = options["gravity"] as? String {
-            gravity = WebViewGravity(rawValue: g) ?? .center
-        }
-
-        let config = WebViewConfig(
-            backgroundColor: UIColor(hex: bgHex),
-            width: width,
-            height: height,
-            gravity: gravity
-        )
-
-        DispatchQueue.main.async {
-            let controller = WebViewController(urlString: urlString, config: config)
-            let controllerId = UUID().uuidString
-            self.webControllers[controllerId] = controller
-
-            if let rootVC = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .flatMap({ $0.windows })
-                .first(where: { $0.isKeyWindow })?
-                .rootViewController {
-
-                controller.modalPresentationStyle = .overFullScreen
-                controller.modalTransitionStyle = .coverVertical
-
-                rootVC.present(controller, animated: true) {
-                    resolve(["status": "shown", "controllerId": controllerId])
-                }
-            } else {
-                 resolve(["status": "created", "controllerId": controllerId])
-            }
+        if let gravity = config["gravity"] as? String {
+            controller.gravity = CMPWebViewGravity(rawValue: gravity) ?? .center
         }
     }
+
+    let controllerId = UUID().uuidString
+    webControllers[controllerId] = controller
+    resolve(["controllerId": controllerId])
+}
+
+
 
     @objc
     func showController(_ controllerId: String,

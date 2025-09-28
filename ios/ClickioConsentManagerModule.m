@@ -38,8 +38,7 @@ RCT_EXTERN_METHOD(webviewLoadUrl:(NSDictionary *)options
 RCT_EXTERN_METHOD(showController:(NSString *)controllerId
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
-
-RCT_EXTERN_METHOD(dismissController:(NSString *)controllerId
+RCT_EXTERN_METHOD(webviewLoadUrl:(NSDictionary *)options
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 @end
