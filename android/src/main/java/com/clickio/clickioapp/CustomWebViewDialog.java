@@ -84,10 +84,9 @@ public void onStart() {
     if (getDialog() != null && getDialog().getWindow() != null) {
         android.view.Window window = getDialog().getWindow();
 
-        // ✅ Make width full by default
+        //Make width full by default
         int finalWidth = (width > 0) ? width : ViewGroup.LayoutParams.MATCH_PARENT;
 
-        // ✅ If no height provided, take ~70% of screen (instead of WRAP_CONTENT)
         int finalHeight;
         if (height > 0) {
             finalHeight = height;
@@ -99,12 +98,12 @@ public void onStart() {
 
         window.setLayout(finalWidth, finalHeight);
 
-        // ✅ Apply gravity
+        // Apply gravity
         android.view.WindowManager.LayoutParams params = window.getAttributes();
         params.gravity = gravity;
         window.setAttributes(params);
 
-        // ✅ Background color
+        //Background color
         int colorInt = parseColorSafe(bgColor);
         webView.setBackgroundColor(colorInt);
         window.setBackgroundDrawable(new ColorDrawable(colorInt));

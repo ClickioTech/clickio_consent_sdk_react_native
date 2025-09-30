@@ -9,66 +9,6 @@ This SDK supports integrations with third-party tools like Firebase, Adjust, Air
 
 Before integrating the ClickioConsentSdk (hereinafter referred to as the **Clickio SDK**), ensure that your React Native application meets the following requirements:
 
-## WebView Consent Synchronization
-
-### Overview
-
-When your React Native app displays web content inside a WebView (for example, embedded websites, widgets, or ads), it is important to **synchronize user consent**.  
-Without synchronization, the Consent Management Platform (CMP) dialog may appear twice — once in the app layer and once in the WebView content.
-
-The `ConsentWebView` component allows you to pass saved Clickio consent data to your web content, ensuring the WebView respects the user’s previous consent choices.  
-This provides a seamless experience and prevents duplicate consent prompts.
-
-**Tip:** Use this whenever you need to show web content that must comply with user consent already collected in the app.
-
----
-
-### WebViewConfig Class
-
-The `WebViewConfig` class allows you to configure the WebView appearance, similar to Flutter:
-
-````ts
-export interface WebViewConfig {
-  /** Background color of the WebView. Default: 'transparent' */
-  backgroundColor?: string;
-
-  /** Height of the WebView in pixels. Default: undefined (fills available space) */
-  height?: number;
-
-  /** Width of the WebView in pixels. Default: undefined (fills available space) */
-  width?: number;
-
-  /** Alignment of the WebView content inside its container. Default: 'center' */
-  gravity?: "top" | "center" | "bottom";
-}
-
-
-### Android
-
-- **Minimum SDK Version**: 21 (Android 5.0)
-- **Target/Compile SDK Version**: The minimum required for Google Play compliance.
-- **Permissions**: Add the following to your `AndroidManifest.xml`:
-
-```xml
-<uses-permission android:name="android.permission.INTERNET"/>
-<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-````
-
----
-
-### iOS
-
-- **Minimum iOS Version**: 15.0+
-- **Swift Version**: 5.0+
-- **Permissions**: Add the following to your `Info.plist`:
-
-```xml
-<key>NSUserTrackingUsageDescription</key>
-<string>Add your data usage description</string>
-```
-
----
-
 ## 📦 Installation
 
 ```bash
@@ -360,4 +300,137 @@ async function setupAdsWithConsent() {
 }
 ```
 
+## WebView Consent Synchronization
+
+### Overview
+
+When your React Native app displays web content inside a WebView (for example, embedded websites, widgets, or ads), it is important to **synchronize user consent**.  
+Without synchronization, the Consent Management Platform (CMP) dialog may appear twice — once in the app layer and once in the WebView content.
+
+The `ConsentWebView` component allows you to pass saved Clickio consent data to your web content, ensuring the WebView respects the user’s previous consent choices.  
+This provides a seamless experience and prevents duplicate consent prompts.
+
+**Tip:** Use this whenever you need to show web content that must comply with user consent already collected in the app.
+
+### Opening the Consent WebView
+
+The SDK provides a helper method to display a consent dialog inside a WebView.  
+The implementation differs slightly between **iOS** and **Android**:
+
+`````ts
+const openConsentWebview = async () => {
+  try {
+    if (Platform.OS === "ios") {
+      const { controllerId } = await ClickioConsentManagerModule.webviewLoadUrl({
+        url: 'https://example.com',
+        config: {
+          width: 100, // WebView width (in dp)
+          height: 100, // WebView height (in dp)
+          backgroundColor: "transparent", // Hex code or 'transparent'
+          gravity: "bottom", // "top" | "center" | "bottom"
+        },
+      });
+
+      controllerIdRef.current = controllerId;
+
+      await ClickioConsentManagerModule.showController(controllerId);
+      console.log("Consent WebView opened (iOS)");
+    } else {
+      await ClickioSDKModule.openDialog({
+        url: 'https://example.com',
+        backgroundColor: "transparent",
+        width: -1, // -1 means fullscreen
+        height: -1,
+        gravity: "top", // "top" | "center" | "bottom"
+      });
+      console.log("Consent WebView opened (Android)");
+    }
+  } catch (e) {
+    console.error("Failed to open consent webview:", e);
+  }
+};
+
+###Parameter
+
+####iOS – `webviewLoadUrl(config: WebViewConfig)`
+
+- **`url`** (`string`)
+  The URL to load inside the WebView. Should point to content that supports Clickio consent synchronization.
+
+- **`config.width`** (`number`)
+  Width of the WebView in **dp (density-independent pixels)**. Optional. If not provided, it defaults to filling the available width.
+
+- **`config.height`** (`number`)
+  Height of the WebView in **dp**. Optional. Defaults to filling the available height.
+
+- **`config.backgroundColor`** (`string`)
+  Background color of the WebView. Can be a hex value (e.g., `"#FFFFFF"`) or `"transparent"`.
+
+- **`config.gravity`** (`"top"` | `"center"` | `"bottom"`)
+  Controls the vertical alignment of the WebView. Defaults to `"center"` if not specified.
+
+- **Returns:**
+  An object containing `{ controllerId: string }`, which you need to display or manage the WebView later using `showController(controllerId)`.
+
+
+---
+
+####  Android – `openDialog({...})`
+
+- **`url`** (`string`)
+  The URL to load inside the WebView.
+
+- **`width`** (`number`)
+  Width of the WebView in **dp**. Use `-1` to make it fullscreen.
+
+- **`height`** (`number`)
+  Height of the WebView in **dp**. Use `-1` to make it fullscreen.
+
+- **`backgroundColor`** (`string`)
+  Background color of the WebView. Can be a hex value or `"transparent"`.
+
+- **`gravity`** (`"top"` | `"center"` | `"bottom"`)
+  Vertical alignment of the WebView on the screen.
+### ℹ️ About `controllerId` (iOS Only)
+
+When using `webviewLoadUrl` on **iOS**, the method returns a special identifier called `controllerId`. This ID is used to manage the native WebView controller that renders the consent interface.
+
+#### Why is `controllerId` needed?
+
+- On iOS, the WebView is managed by a native controller (like a modal).
+- `controllerId` acts as a reference to that specific WebView instance.
+- You need to pass this ID to `showController(controllerId)` in order to display the WebView after loading it.
+- You can also reuse the `controllerId` to later hide or update the same WebView session.
+
+#### Usage Flow:
+
+1. Call `webviewLoadUrl(...)` with the URL and config.
+2. Store the returned `controllerId`.
+3. Call `showController(controllerId)` to display the WebView.
+4. Optionally, use the same ID to control the WebView later (e.g., close, reload).
+
+#### Example:
+
+````ts
+const { controllerId } = await ClickioConsentManagerModule.webviewLoadUrl({
+  url: 'https://example.com',
+  config: { ... },
+});
+await ClickioConsentManagerModule.showController(controllerId);
+
+###Closing the Consent WebView
+
+The Clickio SDK allows you to **programmatically close the consent WebView**, which is especially useful if you're controlling the flow of the consent UI manually.
+
+#### Using `controllerId`
+
+If you have shown a WebView using `webviewLoadUrl`, you can later close it using the exposed native method:
+
+````ts
+await ClickioConsentManagerModule.closeWebView(controllerId);
+
+
+
 > 💡 **Tip:** Avoid calling `MobileAds().initialize()` more than once. Use a flag like `adsStarted` or check `MobileAds().isInitialized`.
+
+`````
