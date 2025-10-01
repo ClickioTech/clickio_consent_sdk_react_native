@@ -298,7 +298,7 @@ async function setupAdsWithConsent() {
   // Optional: Initialize Clickio SDK if needed
   ClickioConsentSDK.initialize();
 }
-> 💡 **Tip:** Avoid calling `MobileAds().initialize()` more than once. Use a flag like `adsStarted` or check `MobileAds().isInitialized`.
+ **Tip:** Avoid calling `MobileAds().initialize()` more than once. Use a flag like `adsStarted` or check `MobileAds().isInitialized`.
 
 
 ```
@@ -320,19 +320,26 @@ This provides a seamless experience and prevents duplicate consent prompts.
 The SDK provides a helper method to display a consent dialog inside a WebView.  
 The implementation differs slightly between **iOS** and **Android**:
 
-`````ts
+### Opening the Consent WebView
+
+The SDK provides a helper method to display a consent dialog inside a WebView.  
+The implementation differs slightly between **iOS** and **Android**:
+
+```ts
 const openConsentWebview = async () => {
   try {
     if (Platform.OS === "ios") {
-      const { controllerId } = await ClickioConsentManagerModule.webviewLoadUrl({
-        url: 'https://example.com',
-        config: {
-          width: 100, // WebView width (in dp)
-          height: 100, // WebView height (in dp)
-          backgroundColor: "transparent", // Hex code or 'transparent'
-          gravity: "bottom", // "top" | "center" | "bottom"
-        },
-      });
+      const { controllerId } = await ClickioConsentManagerModule.webviewLoadUrl(
+        {
+          url: "https://example.com",
+          config: {
+            width: 100, // WebView width (in dp)
+            height: 100, // WebView height (in dp)
+            backgroundColor: "transparent", // Hex code or 'transparent'
+            gravity: "bottom", // "top" | "center" | "bottom"
+          },
+        }
+      );
 
       controllerIdRef.current = controllerId;
 
@@ -340,7 +347,7 @@ const openConsentWebview = async () => {
       console.log("Consent WebView opened (iOS)");
     } else {
       await ClickioSDKModule.openDialog({
-        url: 'https://example.com',
+        url: "https://example.com",
         backgroundColor: "transparent",
         width: -1, // -1 means fullscreen
         height: -1,
@@ -352,6 +359,7 @@ const openConsentWebview = async () => {
     console.error("Failed to open consent webview:", e);
   }
 };
+```
 
 ###Parameter
 
@@ -375,10 +383,9 @@ const openConsentWebview = async () => {
 - **Returns:**
   An object containing `{ controllerId: string }`, which you need to display or manage the WebView later using `showController(controllerId)`.
 
-
 ---
 
-####  Android – `openDialog({...})`
+#### Android – `openDialog({...})`
 
 - **`url`** (`string`)
   The URL to load inside the WebView.
@@ -394,6 +401,7 @@ const openConsentWebview = async () => {
 
 - **`gravity`** (`"top"` | `"center"` | `"bottom"`)
   Vertical alignment of the WebView on the screen.
+
 ### ℹ️ About `controllerId` (iOS Only)
 
 When using `webviewLoadUrl` on **iOS**, the method returns a special identifier called `controllerId`. This ID is used to manage the native WebView controller that renders the consent interface.
@@ -414,7 +422,7 @@ When using `webviewLoadUrl` on **iOS**, the method returns a special identifier 
 
 #### Example:
 
-````ts
+`````ts
 const { controllerId } = await ClickioConsentManagerModule.webviewLoadUrl({
   url: 'https://example.com',
   config: { ... },
