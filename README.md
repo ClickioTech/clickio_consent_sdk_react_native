@@ -150,7 +150,7 @@ const handleAppStateChange = async (nextAppState: AppStateStatus) => {
 
 To open the consent dialog:
 
-```dart
+```ts
 await openDialog(
   mode: "resurface", // or "defaultMode"
   attNeeded: true,
@@ -166,13 +166,11 @@ await openDialog(
 
 > 💡 If your app has its own ATT Permission manager you just pass `false` in `attNeeded` parameter and call your own ATT method. Keep in mind that in this case consent screen will be shown regardless given ATT Permission.
 
-````
-
 ### Enable Logging
 
 ```ts
 await setClickioLogging(true); // Enables verbose mode in native SDK logs
-````
+```
 
 ---
 
@@ -307,22 +305,22 @@ async function setupAdsWithConsent() {
 
 ### Overview
 
-When your React Native app displays web content inside a WebView (for example, embedded websites, widgets, or ads), it is important to **synchronize user consent**.  
+When your React Native app displays web content inside a WebView (for example, embedded websites, widgets, or ads), it is important to **synchronize user consent**.
 Without synchronization, the Consent Management Platform (CMP) dialog may appear twice — once in the app layer and once in the WebView content.
 
-The `ConsentWebView` component allows you to pass saved Clickio consent data to your web content, ensuring the WebView respects the user’s previous consent choices.  
+The `ConsentWebView` component allows you to pass saved Clickio consent data to your web content, ensuring the WebView respects the user’s previous consent choices.
 This provides a seamless experience and prevents duplicate consent prompts.
 
 **Tip:** Use this whenever you need to show web content that must comply with user consent already collected in the app.
 
 ### Opening the Consent WebView
 
-The SDK provides a helper method to display a consent dialog inside a WebView.  
+The SDK provides a helper method to display a consent dialog inside a WebView.
 The implementation differs slightly between **iOS** and **Android**:
 
 ### Opening the Consent WebView
 
-The SDK provides a helper method to display a consent dialog inside a WebView.  
+The SDK provides a helper method to display a consent dialog inside a WebView.
 The implementation differs slightly between **iOS** and **Android**:
 
 ```ts
@@ -361,9 +359,11 @@ const openConsentWebview = async () => {
 };
 ```
 
-###Parameter
+---
 
-####iOS – `webviewLoadUrl(config: WebViewConfig)`
+### Parameter
+
+#### iOS – `webviewLoadUrl(config: WebViewConfig)`
 
 - **`url`** (`string`)
   The URL to load inside the WebView. Should point to content that supports Clickio consent synchronization.
@@ -422,14 +422,15 @@ When using `webviewLoadUrl` on **iOS**, the method returns a special identifier 
 
 #### Example:
 
-`````ts
+```ts
 const { controllerId } = await ClickioConsentManagerModule.webviewLoadUrl({
   url: 'https://example.com',
   config: { ... },
 });
 await ClickioConsentManagerModule.showController(controllerId);
+```
 
-###Closing the Consent WebView
+### Closing the Consent WebView
 
 The Clickio SDK allows you to **programmatically close the consent WebView**, which is especially useful if you're controlling the flow of the consent UI manually.
 
@@ -437,10 +438,6 @@ The Clickio SDK allows you to **programmatically close the consent WebView**, wh
 
 If you have shown a WebView using `webviewLoadUrl`, you can later close it using the exposed native method:
 
-````ts
+```ts
 await ClickioConsentManagerModule.closeWebView(controllerId);
-
-
-
-
-`````
+```
