@@ -296,10 +296,9 @@ async function setupAdsWithConsent() {
   // Optional: Initialize Clickio SDK if needed
   ClickioConsentSDK.initialize();
 }
- **Tip:** Avoid calling `MobileAds().initialize()` more than once. Use a flag like `adsStarted` or check `MobileAds().isInitialized`.
-
-
 ```
+
+**Tip:** Avoid calling `MobileAds().initialize()` more than once. Use a flag like `adsStarted` or check `MobileAds().isInitialized`.
 
 ## WebView Consent Synchronization
 
